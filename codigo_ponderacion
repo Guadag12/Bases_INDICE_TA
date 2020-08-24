@@ -1,0 +1,137 @@
+options(scipen = 20)
+
+#activamos las librerias
+library(readxl)
+library(tidyverse)
+library(openxlsx)
+
+#######################################################################################
+############################# EMPRESAS PUBLICAS ######################################
+#######################################################################################
+
+#traemos el listado de empresas con el financiamiento calculado
+Listado_empresas_ <- read_csv("https://raw.githubusercontent.com/Guadag12/Bases_INDICE_TA/master/Listado_Organismos%20-%20Empresas%20publicas.csv")
+
+Listado_empresas_$MARGEN <- as.numeric(Listado_empresas_$MARGEN) #pasamos el valor a numero
+
+#generamos un nuevo dataset llamado "l" que contenga una probabilidad asignada segun si el margen (ingresos - gastos) asignado es mayor o menor al margen promedio del organismo
+#en el caso de que el promedio sea mayor la probabilidad va a ser de 0.7, si es menor va a ser 0.3 y si no tenemos información del organismo la prob va a ser de 0.5
+l <- Listado_empresas_ %>% mutate(prob = case_when(
+  MARGEN >= mean(Listado_empresas_$MARGEN,na.rm = T) ~ 0.7, 
+  MARGEN <= mean(Listado_empresas_$MARGEN,na.rm = T) ~ 0.3,
+  is.na(MARGEN) ~ 0.5
+), tipo = "empresa publica") %>%
+  select(tipo, Nombre, MARGEN, prob)
+
+#filtramos las empresas a relevar en los MES A:
+
+l <- l %>% filter(
+  ## EMPRESAS PUBLICAS (3)
+  #Nombre != "AGUA Y SANEAMIENTOS ARGENTINOS S.A.", 
+  Nombre != "ADMINISTRACION NACIONAL DE LA SEGURIDAD SOCIAL", 
+  Nombre != "COMISION NACIONAL DE REGULACION DE TRANSPORTE", 
+  #Nombre != "AGUA Y SANEAMIENTOS ARGENTINOS S.A.")
+)
+View(l)
+
+
+##################################################################################################################
+#################################### DESCENTRALIZADOS ############################################################
+###################################################################################################################
+
+#traemos el listado de descentralizados con el financiamiento calculado
+descentralizados_2019 <- read_csv("https://raw.githubusercontent.com/Guadag12/Bases_INDICE_TA/master/Listado_Organismos%20-%20Universidades.csv")
+
+
+descentralizados_2019$Sujeto <- toupper(descentralizados_2019$Sujeto) #pasamos a mayus el nombre de los organismos
+descentralizados_2019$MARGEN <- as.numeric(descentralizados_2019$MARGEN) #pasamos el valor a numero
+
+#generamos un nuevo dataset llamado "d" que contenga una probabilidad asignada segun si el margen (ingresos - gastos) asignado es mayor o menor al margen promedio del organismo
+#en el caso de que el promedio sea mayor la probabilidad va a ser de 0.7, si es menor va a ser 0.3 y si no tenemos información del organismo la prob va a ser de 0.5
+
+d <- descentralizados_2019 %>% mutate(prob = case_when(
+  MARGEN >= mean(descentralizados_2019$MARGEN,na.rm = T) ~ 0.7, 
+  MARGEN <= mean(descentralizados_2019$MARGEN,na.rm = T) ~ 0.3,
+  is.na(MARGEN) ~ 0.5
+), tipo = "descentralizado") %>%
+  rename(Nombre = Sujeto) %>%
+  select(tipo, Nombre, MARGEN, prob)
+
+#filtramos los organismos a relevar en los MES A:
+d <- d %>% filter(
+  #DESCENTRALIZADOS (4)
+  Nombre != "ADMINISTRACIÓN FEDERAL DE INGRESOS PÚBLICOS", 
+  Nombre != "ADMINISTRACIÓN NACIONAL DE LA SEGURIDAD SOCIAL", 
+  Nombre != "COMISIÓN NACIONAL DE REGULACIÓN DEL TRANSPORTE", 
+  Nombre != "INSTITUTO NACIONAL DE SERVICIOS SOCIALES PARA JUBILADOS Y PENSIONADOS")
+
+###############################################################################################
+################################## UNIVERSIDADES #############################################
+###############################################################################################
+
+universidades_2019 <- read.csv("https://raw.githubusercontent.com/Guadag12/Bases_INDICE_TA/master/Listado_Organismos%20-%20Universidades.csv", fileEncoding = "UTF-8")
+
+# modifico algunos valores que quedaron mal configurados:
+universidades_2019$X.2[universidades_2019$Universidad == "BUENOS AIRES"]<- 35101756877
+universidades_2019$X.2[universidades_2019$Universidad == "TECNOLÓGICA"]<-  12264267107 
+universidades_2019$X.2[universidades_2019$Universidad == "LA PLATA"]<- 13387344951 
+universidades_2019$X.2[universidades_2019$Universidad == "CÓRDOBA"]<- 13565244241
+
+#cambio el nombre de algunas columnas
+names(universidades_2019)[2] <- "Nombre"
+names(universidades_2019)[5] <- "Salud"
+names(universidades_2019)[6] <- "Educación y Cultura"
+names(universidades_2019)[7] <- "Ciencia y Tecnica"
+names(universidades_2019)[8] <- "Presupuesto"
+
+#elimino la fila que quedó mal configurada:
+universidades_2019 <- universidades_2019 %>% 
+  filter(Salud != "Salud")
+
+#cambio el tipo de dato que es la columna "Presupuesto"
+universidades_2019$Presupuesto <- as.numeric(as.character(universidades_2019$Presupuesto))
+
+#generamos un nuevo dataset llamado "U" que contenga una probabilidad asignada segun si el margen (ingresos - gastos) asignado es mayor o menor al margen promedio del organismo
+#en el caso de que el promedio sea mayor la probabilidad va a ser de 0.7, si es menor va a ser 0.3 y si no tenemos información del organismo la prob va a ser de 0.5
+
+u <- universidades_2019 %>%
+  mutate(prob = case_when(
+    Presupuesto >= mean(universidades_2019$Presupuesto,na.rm = T) ~ 0.7, 
+    Presupuesto <= mean(universidades_2019$Presupuesto,na.rm = T) ~ 0.3,
+  is.na(Presupuesto) ~ 0.5
+), tipo = "universidades") %>%  select(tipo, Nombre, Presupuesto, prob)
+
+
+#filtramos los organismos a relevar en los MES A:
+u <- u %>%
+  filter(  #UNIVERSIDADES (2)
+   Nombre != "BUENOS AIRES", 
+   Nombre != "CÓRDOBA")
+
+set.seed(1001) #establecemos una funcion para que sea reproducible el analisis y nos dé lo mismo siempre
+
+# genero el sorteo para descentralizados
+muestra_d_junio2020 <- as.data.frame(sample(d$Nombre, replace = TRUE, prob = d$prob, 15)) 
+names(muestra_d_junio2020)[1] <- "Nombre"
+
+View(muestra_d_junio2020) #veo el resultado
+
+# genero el sorteo para empresas
+muestra_l_junio2020 <- as.data.frame(sample(l$Nombre,replace = TRUE,prob = l$prob,11))
+names(muestra_l_junio2020)[1] <- "Nombre"
+
+View(muestra_l_junio2020) #veo el resultado
+
+# genero el sorteo para universidades
+muestra_u_junio2020 <- as.data.frame(sample(u$Nombre,replace = TRUE,prob = u$prob,9))
+names(muestra_u_junio2020)[1] <- "Nombre"
+
+View(muestra_l_junio2020) #veo el resultado
+
+#### Genero una matriz con valores a relevar
+valores_a_relevar <- c(muestra_d_junio2020, muestra_l_junio2020, muestra_u_junio2020)
+
+#me aseguro que los organismos relevados y elegidos en este muestreo, no se repita en el proximo sorteo: 
+prox_muestra_d <- anti_join(d, muestra_d_junio2020, by="Nombre")
+prox_muestra_l <- anti_join(l, muestra_l_junio2020, by="Nombre")
+prox_muestra_u <- anti_join(l, muestra_u_junio2020, by="Nombre")
