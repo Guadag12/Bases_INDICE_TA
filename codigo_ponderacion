@@ -27,10 +27,12 @@ l <- Listado_empresas_ %>% mutate(prob = case_when(
 
 l <- l %>% filter(
   ## EMPRESAS PUBLICAS (3)
-  #Nombre != "AGUA Y SANEAMIENTOS ARGENTINOS S.A.", 
-  Nombre != "ADMINISTRACION NACIONAL DE LA SEGURIDAD SOCIAL", 
-  Nombre != "COMISION NACIONAL DE REGULACION DE TRANSPORTE", 
-  #Nombre != "AGUA Y SANEAMIENTOS ARGENTINOS S.A.")
+  Nombre != "AGUA Y SANEAMIENTOS ARGENTINOS S.A." &
+  Nombre != "ADMINISTRACION NACIONAL DE LA SEGURIDAD SOCIAL" & 
+  Nombre != "COMISION NACIONAL DE REGULACION DE TRANSPORTE" & 
+  Nombre != "AGUA Y SANEAMIENTOS ARGENTINOS S.A." &
+  Nombre != "YPF GAS S.A." &
+  Nombre != "RADIO Y TELEVISION ARGENTINA S.E.")
 )
 View(l)
 
@@ -40,9 +42,10 @@ View(l)
 ###################################################################################################################
 
 #traemos el listado de descentralizados con el financiamiento calculado
-descentralizados_2019 <- read_csv("https://raw.githubusercontent.com/Guadag12/Bases_INDICE_TA/master/Listado_Organismos%20-%20Universidades.csv")
+descentralizados_2019 <- read_csv("https://raw.githubusercontent.com/Guadag12/Bases_INDICE_TA/master/Listado_Organismos%20-%20Descentralizados%20.csv")
 
-
+names(descentralizados_2019
+      )
 descentralizados_2019$Sujeto <- toupper(descentralizados_2019$Sujeto) #pasamos a mayus el nombre de los organismos
 descentralizados_2019$MARGEN <- as.numeric(descentralizados_2019$MARGEN) #pasamos el valor a numero
 
@@ -60,9 +63,9 @@ d <- descentralizados_2019 %>% mutate(prob = case_when(
 #filtramos los organismos a relevar en los MES A:
 d <- d %>% filter(
   #DESCENTRALIZADOS (4)
-  Nombre != "ADMINISTRACIÓN FEDERAL DE INGRESOS PÚBLICOS", 
-  Nombre != "ADMINISTRACIÓN NACIONAL DE LA SEGURIDAD SOCIAL", 
-  Nombre != "COMISIÓN NACIONAL DE REGULACIÓN DEL TRANSPORTE", 
+  Nombre != "ADMINISTRACIÓN FEDERAL DE INGRESOS PÚBLICOS" & 
+  Nombre != "ADMINISTRACIÓN NACIONAL DE LA SEGURIDAD SOCIAL" & 
+  Nombre != "COMISIÓN NACIONAL DE REGULACIÓN DEL TRANSPORTE" & 
   Nombre != "INSTITUTO NACIONAL DE SERVICIOS SOCIALES PARA JUBILADOS Y PENSIONADOS")
 
 ###############################################################################################
@@ -111,22 +114,22 @@ u <- u %>%
 set.seed(1001) #establecemos una funcion para que sea reproducible el analisis y nos dé lo mismo siempre
 
 # genero el sorteo para descentralizados
-muestra_d_junio2020 <- as.data.frame(sample(d$Nombre, replace = TRUE, prob = d$prob, 15)) 
+muestra_d_junio2020 <- as.data.frame(sample(d$Nombre, replace = F, prob = d$prob, 15)) 
 names(muestra_d_junio2020)[1] <- "Nombre"
 
 View(muestra_d_junio2020) #veo el resultado
 
 # genero el sorteo para empresas
-muestra_l_junio2020 <- as.data.frame(sample(l$Nombre,replace = TRUE,prob = l$prob,11))
+muestra_l_junio2020 <- as.data.frame(sample(l$Nombre,replace = F,prob = l$prob,11))
 names(muestra_l_junio2020)[1] <- "Nombre"
 
 View(muestra_l_junio2020) #veo el resultado
 
 # genero el sorteo para universidades
-muestra_u_junio2020 <- as.data.frame(sample(u$Nombre,replace = TRUE,prob = u$prob,9))
+muestra_u_junio2020 <- as.data.frame(sample(u$Nombre,replace = F,prob = u$prob,9))
 names(muestra_u_junio2020)[1] <- "Nombre"
 
-View(muestra_l_junio2020) #veo el resultado
+View(muestra_u_junio2020) #veo el resultado
 
 #### Genero una matriz con valores a relevar
 valores_a_relevar <- c(muestra_d_junio2020, muestra_l_junio2020, muestra_u_junio2020)
@@ -135,3 +138,4 @@ valores_a_relevar <- c(muestra_d_junio2020, muestra_l_junio2020, muestra_u_junio
 prox_muestra_d <- anti_join(d, muestra_d_junio2020, by="Nombre")
 prox_muestra_l <- anti_join(l, muestra_l_junio2020, by="Nombre")
 prox_muestra_u <- anti_join(l, muestra_u_junio2020, by="Nombre")
+
